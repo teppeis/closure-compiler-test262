@@ -1,0 +1,24 @@
+{
+  "name": "closure-compiler-test262",
+  "version": "1.0.0",
+  "author": "Teppei Sato <teppeis@gmail.com>",
+  "main": "index.js",
+  "scripts": {
+    "test": "eslint *.js"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-teppeis": "^6.9.0",
+    "prettier": "1.12.1"
+  },
+  "homepage": "https://github.com/teppeis/closure-compiler-test262#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/teppeis/closure-compiler-test262.git"
+  },
+  "bugs": {
+    "url": "https://github.com/teppeis/closure-compiler-test262/issues"
+  },
+  "keywords": [],
+  "license": "MIT"
+}
