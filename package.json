@@ -24,5 +24,6 @@
     "url": "https://github.com/teppeis/closure-compiler-test262/issues"
   },
   "keywords": [],
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {}
 }

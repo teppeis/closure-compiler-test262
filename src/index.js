@@ -1,6 +1,9 @@
 'use strict';
 
 require('./array');
-require('./math');
 require('./object');
 require('./string');
+require('./math');
+require('./number');
+require('./map');
+require('./set');

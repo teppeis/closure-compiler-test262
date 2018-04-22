@@ -8,7 +8,7 @@ test262.builtins('Math.atanh');
 test262.builtins('Math.cbrt');
 test262.builtins('Math.clz32');
 test262.builtins('Math.cosh');
-test262.builtins('Math.exp1m');
+test262.builtins('Math.expm1');
 test262.builtins('Math.hypot');
 test262.builtins('Math.imul');
 test262.builtins('Math.log10');

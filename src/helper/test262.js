@@ -6,6 +6,7 @@ const vm = require('vm');
 
 const projectRoot = path.resolve(__dirname, '../../');
 const test262Dir = path.join(projectRoot, 'test262');
+const builtinsDir = path.join(test262Dir, 'test', 'built-ins');
 const closureRuntimeDir = path.join(
   projectRoot,
   'closure-compiler/src/com/google/javascript/jscomp/js'
@@ -15,31 +16,63 @@ const harnessAssert = readTest262Harness('assert.js');
 const harnessSta = readTest262Harness('sta.js');
 
 /**
- * @param {string} target like 'Array.prototype.copyWithin' or 'Array.from'
+ * @param {string} target like 'Map' or 'Array.prototype.copyWithin'
+ * @param {string=} targetTestDir Test262 test direcotry for the target
  */
-function builtins(target) {
-  const targetTestDir = path.join(
-    test262Dir,
-    'test',
-    'built-ins',
-    // expm1 is correct.
-    // https://github.com/google/closure-compiler/pull/2903
-    ...target.split('.').map(file => file.replace(/^exp1m$/, 'expm1'))
-  );
-
-  describe(target, () => {
-    const files = fs.readdirSync(targetTestDir);
-    files.sort().forEach(file => {
-      if (process.env.SKIP_NAME && file === 'name.js') {
-        it.skip('name');
-      } else if (process.env.SKIP_LENGTH && file === 'length.js') {
-        it.skip('length');
-      } else {
-        it(path.basename(file, '.js').replace(/-/g, ' '), () => {
-          runBuiltinTest(target, path.join(targetTestDir, file));
-        });
+function builtins(target, targetTestDir = path.join(builtinsDir, ...target.split('.'))) {
+  describe(path.basename(targetTestDir), () => {
+    let files;
+    try {
+      files = fs.readdirSync(targetTestDir).map(item => {
+        const abs = path.join(targetTestDir, item);
+        return {name: item, abs, stat: fs.statSync(abs)};
+      });
+    } catch (e) {
+      const targetTestFile = `${targetTestDir}.js`;
+      const stat = fs.statSync(targetTestFile);
+      if (!stat.isFile()) {
+        throw e;
       }
-    });
+      files = [
+        {
+          name: path.basename(targetTestFile),
+          abs: targetTestFile,
+          stat,
+        },
+      ];
+    }
+
+    files
+      .sort((a, b) => {
+        const aIsDir = Number(a.stat.isDirectory());
+        const bIsDir = Number(b.stat.isDirectory());
+        if (aIsDir < bIsDir) {
+          return -1;
+        } else if (aIsDir > bIsDir) {
+          return 1;
+        }
+
+        if (a.name < b.name) {
+          return -1;
+        } else if (a.name > b.name) {
+          return 1;
+        }
+
+        return 0;
+      })
+      .forEach(({name, abs, stat}) => {
+        if (stat.isDirectory()) {
+          builtins(target, abs);
+        } else if (process.env.SKIP_NAME && name === 'name.js') {
+          it.skip('name');
+        } else if (process.env.SKIP_LENGTH && name === 'length.js') {
+          it.skip('length');
+        } else {
+          it(name.replace(/\.js$/, '').replace(/-/g, ' '), () => {
+            runBuiltinTest(target, abs);
+          });
+        }
+      });
   });
 }
 
@@ -56,7 +89,10 @@ function readTest262Harness(harness) {
  * @return {string}
  */
 function readClosureRuntime(polyfillFile) {
-  return fs.readFileSync(path.join(closureRuntimeDir, polyfillFile), 'utf8');
+  // expm1 is correct.
+  // https://github.com/google/closure-compiler/pull/2903
+  const fixedPath = polyfillFile.replace(/expm1/, 'exp1m');
+  return fs.readFileSync(path.join(closureRuntimeDir, fixedPath), 'utf8');
 }
 
 /**
@@ -114,7 +150,7 @@ function runBuiltinTest(target, testPath) {
   );
   const polyfills = loadPolyfill(targetPolyfillPath);
   const testSrcList = loadTest(testPath);
-  const src = [`${target} = null;`, ...polyfills, harnessAssert, harnessSta, ...testSrcList];
+  const src = [`this.${target} = null;`, ...polyfills, harnessAssert, harnessSta, ...testSrcList];
   vm.runInNewContext(src.join(';\n'), {console});
 }
 

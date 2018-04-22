@@ -11,4 +11,4 @@ const list = [
   'Object.setPrototypeOf',
   'Object.values',
 ];
-list.forEach(test262.builtins);
+list.forEach(target => test262.builtins(target));
