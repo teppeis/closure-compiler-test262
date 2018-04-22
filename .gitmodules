@@ -1,0 +1,6 @@
+[submodule "closure-compiler"]
+	path = closure-compiler
+	url = git@github.com:google/closure-compiler.git
+[submodule "test262"]
+	path = test262
+	url = git@github.com:tc39/test262.git
