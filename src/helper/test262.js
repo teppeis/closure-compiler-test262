@@ -30,9 +30,15 @@ function builtins(target) {
   describe(target, () => {
     const files = fs.readdirSync(targetTestDir);
     files.sort().forEach(file => {
-      it(path.basename(file, '.js').replace(/-/g, ' '), () => {
-        runBuiltinTest(target, path.join(targetTestDir, file));
-      });
+      if (process.env.SKIP_NAME && file === 'name.js') {
+        it.skip('name');
+      } else if (process.env.SKIP_LENGTH && file === 'length.js') {
+        it.skip('length');
+      } else {
+        it(path.basename(file, '.js').replace(/-/g, ' '), () => {
+          runBuiltinTest(target, path.join(targetTestDir, file));
+        });
+      }
     });
   });
 }
