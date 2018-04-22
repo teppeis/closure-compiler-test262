@@ -18,8 +18,13 @@ const harnessSta = readTest262Harness('sta.js');
 /**
  * @param {string} target like 'Map' or 'Array.prototype.copyWithin'
  * @param {string=} targetTestDir Test262 test direcotry for the target
+ * @param {string=} targetPolyfillPath
  */
-function builtins(target, targetTestDir = path.join(builtinsDir, ...target.split('.'))) {
+function builtins(
+  target,
+  targetTestDir = path.join(builtinsDir, ...target.split('.')),
+  targetPolyfillPath
+) {
   describe(path.basename(targetTestDir), () => {
     let files;
     try {
@@ -62,14 +67,14 @@ function builtins(target, targetTestDir = path.join(builtinsDir, ...target.split
       })
       .forEach(({name, abs, stat}) => {
         if (stat.isDirectory()) {
-          builtins(target, abs);
+          builtins(target, abs, targetPolyfillPath);
         } else if (process.env.SKIP_NAME && name === 'name.js') {
           it.skip('name');
         } else if (process.env.SKIP_LENGTH && name === 'length.js') {
           it.skip('length');
         } else {
           it(name.replace(/\.js$/, '').replace(/-/g, ' '), () => {
-            runBuiltinTest(target, abs);
+            runBuiltinTest(target, abs, targetPolyfillPath);
           });
         }
       });
@@ -139,15 +144,18 @@ function loadTest(testPath) {
 /**
  * @param {string} target
  * @param {string} testPath
+ * @param {string=} targetPolyfillPath
  */
-function runBuiltinTest(target, testPath) {
-  const targetPolyfillPath = path.join(
-    'es6',
-    ...target
-      .split('.')
-      .filter(item => item !== 'prototype')
-      .map(item => item.toLowerCase())
-  );
+function runBuiltinTest(target, testPath, targetPolyfillPath) {
+  if (!targetPolyfillPath) {
+    targetPolyfillPath = path.join(
+      'es6',
+      ...target
+        .split('.')
+        .filter(item => item !== 'prototype')
+        .map(item => item.toLowerCase())
+    );
+  }
   const polyfills = loadPolyfill(targetPolyfillPath);
   const testSrcList = loadTest(testPath);
   const src = [`this.${target} = null;`, ...polyfills, harnessAssert, harnessSta, ...testSrcList];
