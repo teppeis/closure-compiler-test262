@@ -131,11 +131,20 @@ function loadPolyfill(polyfillPath, polyfills = [], cache = new Map()) {
 function loadTest(testPath) {
   const src = [];
   const testSrc = fs.readFileSync(testPath, 'utf8');
-  const match = /^includes: \[(?:(?:, *)?([^,\]]*.js))+\]/m.exec(testSrc);
+  let match = /^flags: \[(.*)\]/m.exec(testSrc);
   if (match) {
-    for (let i = 1; i < match.length; i++) {
-      src.push(readTest262Harness(match[i]));
+    const flags = match[1].split(',').map(flag => flag.trim());
+    if (flags.includes('async')) {
+      src.push(readTest262Harness('doneprintHandle.js'));
     }
+  }
+
+  match = /^includes: \[(.*)\]/m.exec(testSrc);
+  if (match) {
+    const includes = match[1].split(',').map(include => include.trim());
+    includes.forEach(include => {
+      src.push(readTest262Harness(include));
+    });
   }
   src.push(testSrc);
   return src;
@@ -159,7 +168,22 @@ function runBuiltinTest(target, testPath, targetPolyfillPath) {
   const polyfills = loadPolyfill(targetPolyfillPath);
   const testSrcList = loadTest(testPath);
   const src = [`this.${target} = null;`, ...polyfills, harnessAssert, harnessSta, ...testSrcList];
-  vm.runInNewContext(src.join(';\n'), {console});
+  vm.runInNewContext(
+    src.join(';\n'),
+    {
+      setTimeout,
+      setInterval,
+      clearTimeout,
+      clearInterval,
+      console,
+      print(str) {
+        if (str !== 'Test262:AsyncTestComplete') {
+          throw new Error(str);
+        }
+      },
+    },
+    {timeout: 1000}
+  );
 }
 
 module.exports = {builtins};
