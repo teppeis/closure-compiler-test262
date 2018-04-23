@@ -126,16 +126,20 @@ function loadPolyfill(polyfillPath, polyfills = [], cache = new Map()) {
 
 /**
  * @param {string} testPath
- * @return {Array<string>}
+ * @return {{src: Array<string>, strict: boolean}}
  */
 function loadTest(testPath) {
   const src = [];
+  let strict = false;
   const testSrc = fs.readFileSync(testPath, 'utf8');
   let match = /^flags: \[(.*)\]/m.exec(testSrc);
   if (match) {
     const flags = match[1].split(',').map(flag => flag.trim());
     if (flags.includes('async')) {
       src.push(readTest262Harness('doneprintHandle.js'));
+    }
+    if (flags.includes('onlyStrict')) {
+      strict = true;
     }
   }
 
@@ -147,7 +151,7 @@ function loadTest(testPath) {
     });
   }
   src.push(testSrc);
-  return src;
+  return {src, strict};
 }
 
 /**
@@ -166,8 +170,11 @@ function runBuiltinTest(target, testPath, targetPolyfillPath) {
     );
   }
   const polyfills = loadPolyfill(targetPolyfillPath);
-  const testSrcList = loadTest(testPath);
-  const src = [`this.${target} = null;`, ...polyfills, harnessAssert, harnessSta, ...testSrcList];
+  const test = loadTest(testPath);
+  const src = [`this.${target} = null;`, ...polyfills, harnessAssert, harnessSta, ...test.src];
+  if (test.strict) {
+    src.unshift('"use strict";');
+  }
   vm.runInNewContext(
     src.join(';\n'),
     {

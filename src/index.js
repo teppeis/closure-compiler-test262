@@ -7,3 +7,4 @@ require('./math');
 require('./number');
 require('./map');
 require('./set');
+require('./promise');
